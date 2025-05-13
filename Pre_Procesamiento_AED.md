@@ -8,24 +8,51 @@ Se importaron los archivos .csv relevantes, incluyendo:
 - POS_CASH_balance, credit_card_balance
 
 # 2. Limpieza de valores nulos
-Se eliminaron columnas con más del 60% de valores faltantes.
+Se eliminaron columnas con más del 60% de valores faltantes y se hizo imputacion de todos los dataframes (a excepcion de application) para sus valores numericos por media y para sus valores no numericos por moda.
 
 # 3. Manejo de outliers
 Se aplicó el método del rango intercuartil (IQR) para detectar y marcar outliers.
 Para DAYS_EMPLOYED, se detectó un valor atípico estructural (365243) que fue reemplazado por NaN. Se encontraron otras variables con outliers, sin embargo, estas no se consideraron importantes para la limpieza de datos, ya que, seguramente no serían usadas posteriormente en los modelos por ser información no relevante, como por ejemplo los números de teléfonos de clientes o información no tan relacionada con riesgo crediticio.
+![Outlier en DAYS_EMPLOYED](images/Days_employment.png)
 
 # 4. Agregación de fuentes externas
-Se agregaron datos de otras tablas (bureau, installments, previous_application, etc.) al dataset principal (application_train) usando el campo SK_ID_CURR.
-Las variables numéricas se agruparon por cliente, aplicando funciones estadísticas (count, mean, max, min, sum), y se renombraron con un prefijo identificador (ej. BUREAU_, INST_, PREV_).
+Para enriquecer el conjunto principal de datos (`application_train`), se integró información histórica desde otras tablas relacionadas (`bureau`, `installments_payments`, `previous_application`, `POS_CASH_balance`, `credit_card_balance`), todas vinculadas por la clave común `SK_ID_CURR`.
+Dado que estas tablas contienen múltiples registros por cliente, se realizó una **agregación numérica**, convirtiendo estos registros múltiples en una sola fila por cliente.
+Se aplicaron las funciones estadísticas `count`, `mean`, `max`, `min` y `sum` a las columnas numéricas, permitiendo resumir el comportamiento histórico del cliente (por ejemplo: total pagado, número de créditos previos, deuda máxima, etc.).
+
+Las nuevas columnas fueron renombradas con un prefijo que indica su origen (`BUREAU_`, `PREV_`, `INST_`, `POS_`, `CC_`), y luego se integraron mediante `merge` al dataset principal.
 
 # 5. Análisis exploratorio inicial
 
 Se generaron histogramas y boxplots para analizar:
 - La distribución del monto del crédito (AMT_CREDIT)
+Como se observa en la siguiente gráfica, la distribución es fuertemente sesgada a la derecha: la mayoría de los créditos son menores a 1 millón, pero existen algunos valores extremos que representan créditos mucho más grandes.
+Esto es importante para:
+  - Justificar el uso de estadísticas robustas como la mediana
+  - Tener precaución con los modelos sensibles a escalas
+  - Identificar la necesidad de técnicas de normalización si fuera necesario
+
+![Distribución de AMT_CREDIT](images/dist_amt_credit.png)
+  
 - Ingresos (AMT_INCOME_TOTAL)
-- Relación de estas variables con la columna objetivo (TARGET)
-También se evaluó el desbalance de clases:
-Solo ~8% de los clientes caen en mora (TARGET = 1).
+En la siguiente gráfica se muestra el histograma de la variable `AMT_INCOME_TOTAL`, que representa el ingreso total declarado por cada cliente.
+La distribución es altamente asimétrica hacia la derecha, indicando que la mayoría de los clientes tienen ingresos modestos, mientras que unos pocos reportan ingresos extremadamente altos.
+Esto sugiere la necesidad de:
+  - Aplicar **transformaciones** (logarítmica) si fuera usada directamente en modelos sensibles
+  - Probablemente aplicar otras medidas para evitar los outliers en esta variable
+  - Usar medidas como la **mediana** para imputación o análisis central
+![Distribución de AMT_INCOME_TOTAL](images/dist_amt_income.png)
+
+- Relación entre el monto del crédito y la variable objetivo (TARGET)
+Se evaluó la relación entre `AMT_CREDIT` y `TARGET` (si el cliente cayó o no en mora) mediante un boxplot.
+Como se puede observar en la siguiente figura, las distribuciones de `AMT_CREDIT` son bastante similares entre los dos grupos. La mediana es ligeramente menor para los clientes que cayeron en mora (`TARGET = 1`), pero no hay una diferencia estructural clara.
+Esto sugiere que el monto del crédito, por sí solo, **no permite discriminar fuertemente el riesgo de mora**, aunque puede ser útil en combinación con otras variables.
+![Distribución de TARGET](images/Distribucion_target.png)
+
+- También se evaluó el desbalance de clases:
+Solo ~8% de los clientes caen en mora (TARGET = 1), con lo cual tenemos una variable a pronosticar notablemente desbalanceada.
+![Distribución del monto del crédito por TARGET](images/dist_amt_credit_target.png)
+
 
 # 6. Codificación de variables categóricas
 - Variables binarias: LabelEncoder
