@@ -8,10 +8,11 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.cluster import KMeans
 import gc
 
-# Cargar dataset procesado
+# Cargar dataset procesado, solo train ya que se va a desarrollar un modelo no supervisado
 app_train = pd.read_csv("app_train_clean.csv")
 
-# === 2. Selección de variables numéricas ===
+# === 2. Limpieza de variables ===
+# Seleccion de columnas numéricas, las booleanas no suelen ser usadas para modelos de segmentación
 numeric = app_train.select_dtypes(include=['number'])
 
 # Eliminar columnas con muy baja varianza
@@ -66,6 +67,7 @@ clusters = kmeans.fit_predict(X_scaled)
 app_train['CLUSTER'] = clusters
 
 # === 6. Análisis por cluster ===
+# Estadistica descriptiva de los clusters
 cluster_summary = app_train.groupby('CLUSTER')[features_clust + ['TARGET']].mean().round(2)
 cluster_summary.to_csv("cluster_sum.csv", sep=',', index=False)
 
