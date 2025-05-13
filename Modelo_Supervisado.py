@@ -45,6 +45,53 @@ X_train, X_test, y_train, y_test = train_test_split(
     X_selected_df, y, test_size=0.25, stratify=y, random_state=42
 )
 
+"""
+# Se conserva esta seccion comentada, en esta se hicieron pruebas con otros modelos de clasificación 
+# para identificar cual podria potencialmente tener mejores métricas
+# 5. Modelos
+logreg = LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42)
+rf = RandomForestClassifier(class_weight='balanced', n_estimators=100, random_state=42)
+
+logreg.fit(X_train, y_train)
+rf.fit(X_train, y_train)
+
+# 6. Evaluación
+print("📊 Logistic Regression")
+y_pred_log = logreg.predict(X_test)
+y_proba_log = logreg.predict_proba(X_test)[:,1]
+print(classification_report(y_test, y_pred_log))
+print("AUC:", roc_auc_score(y_test, y_proba_log))
+
+print("\n📊 Random Forest")
+y_pred_rf = rf.predict(X_test)
+y_proba_rf = rf.predict_proba(X_test)[:,1]
+print(classification_report(y_test, y_pred_rf))
+print("AUC:", roc_auc_score(y_test, y_proba_rf))
+
+# 7. Importancia de variables - Random Forest
+rf_importances = pd.Series(rf.feature_importances_, index=selected_columns).sort_values(ascending=False)
+plt.figure(figsize=(10, 6))
+sns.barplot(x=rf_importances.values, y=rf_importances.index)
+plt.title("Importancia de variables - Random Forest")
+plt.xlabel("Importancia")
+plt.tight_layout()
+plt.show()
+
+# 8. Coeficientes y p-values - Regresión Logística
+X_sm = sm.add_constant(X_selected_df)  # Agregar intercepto
+logit_model = sm.Logit(y, X_sm)
+result = logit_model.fit(disp=False)
+
+logit_summary = pd.DataFrame({
+    'Coeficiente': result.params[1:],  # excluye el intercepto
+    'P-valor': result.pvalues[1:]
+})
+logit_summary = logit_summary.sort_values(by='P-valor')
+
+print("\n📌 Regresión Logística: Coeficientes y P-valores")
+print(logit_summary)
+"""
+
 # === 5. Modelo LightGBM con RandomizedSearchCV ===
 # Balanceo de clases manual
 scale_pos_weight = y_train.value_counts()[0] / y_train.value_counts()[1]
